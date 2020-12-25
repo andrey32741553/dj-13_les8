@@ -1,7 +1,7 @@
 import pytest
 from model_bakery import baker
 from rest_framework.test import APIClient
-from django_testing import settings
+from django.conf import settings
 
 
 @pytest.fixture
