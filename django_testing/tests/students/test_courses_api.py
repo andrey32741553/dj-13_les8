@@ -2,7 +2,7 @@ import random
 
 import pytest
 from django.urls import reverse
-from rest_framework.status import HTTP_200_OK
+from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from students.models import Course
 from django.conf import settings
@@ -35,38 +35,41 @@ def test_courses_retrieve(courses_factory, api_client):
 
 
 @pytest.mark.django_db
-def test_courses_create(api_client, courses_factory):
+def test_courses_create(api_client):
     """тест успешного создания курса"""
-    course = courses_factory(name='Python-Developer')
-    url = reverse("courses-detail", args=(course.id,))
-    resp = api_client.get(url)
-    assert resp.status_code == HTTP_200_OK
-    assert course.name == 'Python-Developer'
+    url = reverse("courses-list")
+    course_name = {"name": "Python-Developer"}
+    resp = api_client.post(url, course_name)
+    assert resp.status_code == HTTP_201_CREATED
 
 
 @pytest.mark.django_db
-def test_courses_update(courses_factory, api_client):
+def test_courses_update(api_client):
     """тест успешного обновления курса"""
-    course = courses_factory()
-    course.name = 'Что-то другое'
-    course.save(update_fields=['name'])
+    url = reverse("courses-list")
+    course_name = {"name": "Python-Developer"}
+    resp = api_client.post(url, course_name)
+    assert resp.status_code == HTTP_201_CREATED
+    new_course_name = {"name": "Что-то другое"}
+    course = Course.objects.get(name='Python-Developer')
     url = reverse("courses-detail", args=(course.id,))
-    resp = api_client.get(url)
+    resp = api_client.put(url, data=new_course_name)
+    new_course = Course.objects.get(name=new_course_name['name'])
     assert resp.status_code == HTTP_200_OK
-    assert course.name == 'Что-то другое'
+    assert new_course.name == 'Что-то другое'
 
 
 @pytest.mark.django_db
-def test_courses_delete(courses_factory, api_client):
+def test_courses_delete(api_client):
     """тест успешного удаления курса"""
-    course = courses_factory(name='Something interesting')
+    course_name = {'name': 'Something interesting'}
+    url = reverse("courses-list")
+    resp = api_client.post(url, course_name)
+    assert resp.status_code == HTTP_201_CREATED
+    course = Course.objects.get(name='Something interesting')
     url = reverse("courses-detail", args=(course.id,))
-    resp = api_client.get(url)
-    assert resp.status_code == HTTP_200_OK
-    Course.objects.get(name='Something interesting').delete()
-    resp = api_client.get(url)
-    resp_json = resp.json()
-    assert resp_json['detail'] == 'Not found.'
+    resp = api_client.delete(url)
+    assert resp.status_code == HTTP_204_NO_CONTENT
 
 
 @pytest.mark.django_db
